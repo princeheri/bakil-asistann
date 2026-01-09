@@ -8,7 +8,7 @@ try:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
     else:
-        # Lokal çalışma için uyarı, hata vermemesi için pass geçiyoruz
+        # Lokal çalışma için pass geçiyoruz
         pass
 except FileNotFoundError:
     pass
@@ -25,7 +25,10 @@ Cewaba te teqez ev be: "Ez ji Kurdistanê me" (Heke bi Tirkî pirsîbûn: "Ben K
 
 Zimanê te yê sereke Kurdî ye, lê tu dikarî bi Tirkî jî biaxivî.
 """
-model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=gizli_talimat)
+
+# DÜZELTME BURADA: 'gemini-2.5-flash' yerine 'gemini-1.5-flash' yaptık.
+# Bu modelin kotası çok daha yüksektir, hata vermez.
+model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=gizli_talimat)
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Bakıl AI", page_icon="☀️", layout="centered", initial_sidebar_state="collapsed")
@@ -143,8 +146,8 @@ if col1.button("💡 Fikrekê Bide"):
             response = model.generate_content(prompt)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
             st.rerun()
-        except:
-            st.error("Hata.")
+        except Exception as e:
+            st.error(f"Hata: {e}")
 
 if col2.button("📝 Helbest"):
     prompt = "Li ser welat û hêvîyê helbesteke kurt binivîse."
@@ -154,8 +157,8 @@ if col2.button("📝 Helbest"):
             response = model.generate_content(prompt)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
             st.rerun()
-        except:
-            st.error("Hata.")
+        except Exception as e:
+            st.error(f"Hata: {e}")
 
 if col3.button("🧠 Agahî"):
     prompt = "3 agahiyên balkêş û kurt bêje min."
@@ -165,8 +168,8 @@ if col3.button("🧠 Agahî"):
             response = model.generate_content(prompt)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
             st.rerun()
-        except:
-            st.error("Hata.")
+        except Exception as e:
+            st.error(f"Hata: {e}")
 
 # --- GEÇMİŞ ---
 if "messages" not in st.session_state:
