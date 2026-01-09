@@ -1,21 +1,20 @@
 import streamlit as st
 import google.generativeai as genai
-
-## --- AYARLAR ---
 import os
 
+# --- AYARLAR ---
 # Şifreyi Streamlit Secrets'tan güvenli bir şekilde çekiyoruz
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
     else:
-        st.error("API Anahtarı bulunamadı! Lütfen Streamlit Secrets ayarlarını kontrol et.")
+        # Eğer secrets yoksa (lokal test için) buraya manuel key yazılabilir ama önerilmez
+        st.warning("API Anahtarı bulunamadı! Streamlit Secrets ayarlarını kontrol et.")
 except FileNotFoundError:
-    st.error("Secrets dosyası bulunamadı. Bu uygulama sadece Streamlit Cloud üzerinde çalışır.")
+    st.error("Secrets dosyası bulunamadı.")
 
-
-# --- YAPAY ZEKANIN KİMLİĞİ (GÜNCELLENDİ) ---
+# --- YAPAY ZEKANIN KİMLİĞİ ---
 gizli_talimat = """
 Navê te Bakıl e.
 Tu asîstanekî zîrek, alîkar û Kurdîaxêv î.
@@ -32,54 +31,88 @@ model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=gizli_talim
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Bakıl AI", page_icon="☀️", layout="centered", initial_sidebar_state="collapsed")
 
-# --- SİNEMATİK TASARIM (CSS) ---
+# --- CSS İLE RENK DÜZELTMESİ VE TASARIM ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
 
-    @keyframes gradient {
-        0% {background-position: 0% 50%;}
-        50% {background-position: 100% 50%;}
-        100% {background-position: 0% 50%;}
-    }
+    /* Genel Sayfa Yapısı */
     .stApp {
-        background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e);
-        background-size: 400% 400%;
-        animation: gradient 15s ease infinite;
+        background: linear-gradient(135deg, #140d2b 0%, #2e2a5c 100%);
         font-family: 'Montserrat', sans-serif;
-        color: white;
+        color: #ffffff;
     }
-    header, footer, #MainMenu {visibility: hidden;}
     
+    /* Üst Başlık ve Footer Gizleme */
+    header, footer, #MainMenu {visibility: hidden;}
+
+    /* Başlık Stili (Altın Sarısı Efekt) */
     .baslik {
         font-size: 50px;
-        font-weight: 600;
+        font-weight: 700;
         text-align: center;
-        background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+        background: linear-gradient(to right, #FFD700, #FDB931, #C0C0C0, #FDB931, #FFD700);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 10px;
-        text-shadow: 0px 0px 10px rgba(255, 215, 0, 0.3);
+        margin-bottom: 20px;
+        text-shadow: 0px 4px 10px rgba(0,0,0,0.5);
+    }
+
+    /* Mesaj Balonları (Okunabilirlik İçin Koyu Arka Plan) */
+    .stChatMessage {
+        background-color: rgba(0, 0, 0, 0.4) !important; /* Yarı saydam siyah */
+        border: 1px solid rgba(255, 215, 0, 0.2); /* Hafif altın çerçeve */
+        border-radius: 15px;
+        color: #ffffff !important; /* Yazılar kesinlikle beyaz */
+    }
+
+    /* Kullanıcı Mesajı İkonu */
+    .stChatMessage[data-testid="user-message"] {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Input Alanı (Yazı Yazılan Yer - En Önemli Kısım) */
+    .stChatInputContainer textarea {
+        background-color: #1e1e2f !important; /* Koyu Gri Arka Plan */
+        color: #ffffff !important; /* Beyaz Yazı */
+        border: 1px solid #FFD700 !important; /* Altın Çerçeve */
+        border-radius: 10px;
     }
     
+    /* Input Alanı Placeholder (Silik Yazı) Rengi */
+    .stChatInputContainer textarea::placeholder {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    /* Butonlar */
+    .stButton > button {
+        background: linear-gradient(to right, #1e1e2f, #2e2a5c);
+        color: #FFD700 !important; /* Altın Sarısı Yazı */
+        border: 1px solid #FFD700;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+    
+    .stButton > button:hover {
+        background: #FFD700;
+        color: #000 !important; /* Üzerine gelince siyah yazı */
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+        border: 1px solid transparent;
+    }
+
+    /* Alt İmza */
     .alt-imza {
         position: fixed;
         bottom: 10px;
         left: 0;
         width: 100%;
         text-align: center;
-        font-size: 10px;
-        color: rgba(255,255,255,0.3);
-        letter-spacing: 3px;
+        font-size: 12px;
+        color: rgba(255,255,255,0.4);
+        letter-spacing: 2px;
         z-index: 99;
         pointer-events: none;
-    }
-
-    .stChatMessage {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        margin-bottom: 10px;
-        border: 1px solid rgba(255,255,255,0.1);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -88,34 +121,44 @@ st.markdown("""
 st.markdown('<div class="baslik">BAKIL</div>', unsafe_allow_html=True)
 st.caption("🚀 Asîstanê Te Yê Zîrek")
 
-# --- ÖNERİ BUTONLARI (KÜRTÇE) ---
+# --- ÖNERİ BUTONLARI ---
 col1, col2, col3 = st.columns(3)
+
 if col1.button("💡 Fikrekê Bide"):
     prompt = "Ji bo îro fikrekî cûda û xweş bide min."
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.spinner("Tê fikirîn..."):
-        response = model.generate_content(prompt)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
-        st.rerun()
+        try:
+            response = model.generate_content(prompt)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.rerun()
+        except:
+            st.error("Hata oluştu.")
 
 if col2.button("📝 Helbest"):
     prompt = "Li ser welat û hêvîyê helbesteke kurt binivîse."
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.spinner("Tê nivîsandin..."):
-        response = model.generate_content(prompt)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
-        st.rerun()
+        try:
+            response = model.generate_content(prompt)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.rerun()
+        except:
+            st.error("Hata oluştu.")
 
 if col3.button("🧠 Agahî"):
     prompt = "3 agahiyên balkêş û kurt bêje min."
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.spinner("Tê lêkolîn..."):
-        response = model.generate_content(prompt)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
-        st.rerun()
+        try:
+            response = model.generate_content(prompt)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.rerun()
+        except:
+            st.error("Hata oluştu.")
 
 
-# --- SOHBET GEÇMİŞİ VE AÇILIŞ MESAJI ---
+# --- SOHBET GEÇMİŞİ ---
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Silav! Navê min Bakıl e. Ez çawa dikarim alîkariya te bikim?"}
@@ -132,12 +175,13 @@ if prompt := st.chat_input("Li vir binivîse..."):
 
     with st.chat_message("assistant"):
         placeholder = st.empty()
-        try:
-            response = model.generate_content(prompt)
-            placeholder.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except:
-            placeholder.error("Pirsgirêka girêdanê.")
+        with st.spinner("..."):
+            try:
+                response = model.generate_content(prompt)
+                placeholder.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                placeholder.error(f"Pirsgirêk: {e}")
 
 # --- İMZA ---
 st.markdown('<div class="alt-imza">DESIGNED BY HANİF TOPRAK</div>', unsafe_allow_html=True)
