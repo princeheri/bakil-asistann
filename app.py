@@ -8,6 +8,7 @@ try:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
     else:
+        # Lokal çalışma için
         pass
 except FileNotFoundError:
     pass
@@ -25,8 +26,15 @@ Cewaba te teqez ev be: "Ez ji Kurdistanê me" (Heke bi Tirkî pirsîbûn: "Ben K
 Zimanê te yê sereke Kurdî ye, lê tu dikarî bi Tirkî jî biaxivî.
 """
 
-# MODELİ GÜNCELLEDİK (Hata vermemesi için 1.5-flash yaptık)
-model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=gizli_talimat)
+# --- MODEL SEÇİMİ (GARANTİ ÇALIŞAN MODEL) ---
+# 'gemini-1.5-flash' hata verdiği için en stabil model olan 'gemini-pro' kullanıyoruz.
+try:
+    model = genai.GenerativeModel('gemini-pro') # system_instruction gemini-pro'da farklı çalışabilir, burada basit tutuyoruz.
+    
+    # Not: gemini-pro 'system_instruction' parametresini doğrudan desteklemeyebilir,
+    # bu yüzden talimatı chat geçmişine ekleyeceğiz.
+except:
+    st.error("Model yüklenemedi.")
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Bakıl AI", page_icon="☀️", layout="centered", initial_sidebar_state="collapsed")
@@ -39,7 +47,7 @@ st.markdown("""
     /* 1. ANA ARKA PLAN: BEYAZ */
     .stApp {
         background-color: #ffffff !important;
-        color: #000000 !important; /* Tüm yazılar SİYAH */
+        color: #000000 !important;
         font-family: 'Roboto', sans-serif;
     }
 
@@ -57,15 +65,13 @@ st.markdown("""
     }
     
     .stCaption {
-        color: #444444 !important; /* Koyu gri */
+        color: #444444 !important;
         font-size: 16px !important;
         font-weight: bold;
         text-align: center;
     }
 
-    /* 3. MESAJ KUTULARI (ZIT RENKLER) */
-    
-    /* Asistan Mesajı (Açık Gri Zemin - Siyah Yazı) */
+    /* 3. MESAJ KUTULARI */
     .stChatMessage {
         background-color: #f0f2f6 !important;
         border: 1px solid #cccccc;
@@ -74,22 +80,20 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* Kullanıcı Mesajı (Açık Mavi Zemin - Siyah Yazı) */
     div[data-testid="stChatMessage"][data-testid="user-message"] {
         background-color: #e3f2fd !important;
         color: #000000 !important;
     }
     
-    /* Mesaj içindeki metinlerin rengini zorla siyah yap */
     .stMarkdown, .stMarkdown p {
         color: #000000 !important;
     }
 
-    /* 4. YAZI YAZMA ALANI (INPUT) */
+    /* 4. YAZI YAZMA ALANI */
     .stChatInputContainer textarea {
         background-color: #ffffff !important;
         color: #000000 !important;
-        border: 2px solid #000000 !important; /* Kalın Siyah Çerçeve */
+        border: 2px solid #000000 !important;
         border-radius: 8px;
         font-weight: 600;
     }
@@ -134,51 +138,45 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- BAŞLIK ---
-st.markdown('<div class="baslik">BAKIL AI</div>', unsafe_allow_html=True)
+st.markdown('<div class="baslik">BAKIL </div>', unsafe_allow_html=True)
 st.caption("🚀 Asîstanê Te Yê Zîrek")
+
+# --- SOHBET GEÇMİŞİ BAŞLATMA ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+    # Kimlik talimatını ilk mesaj olarak gizlice ekleyelim (Gemini Pro için)
+    st.session_state.chat = model.start_chat(history=[
+        {"role": "user", "parts": [gizli_talimat]},
+        {"role": "model", "parts": ["Fêm bû. Ez Bakıl im, asîstanê te yê Kurdî."]}
+    ])
+    # Ekranda görünecek ilk mesaj
+    st.session_state.messages.append({"role": "assistant", "content": "Silav! Navê min Bakıl e. Ez çawa dikarim alîkariya te bikim?"})
 
 # --- BUTONLAR ---
 col1, col2, col3 = st.columns(3)
 
-if col1.button("💡 Fikrekê Bide"):
-    prompt = "Ji bo îro fikrekî cûda û xweş bide min."
-    st.session_state.messages.append({"role": "user", "content": prompt})
+def send_message(prompt_text):
+    # Kullanıcı mesajını ekle
+    st.session_state.messages.append({"role": "user", "content": prompt_text})
     with st.spinner("..."):
         try:
-            response = model.generate_content(prompt)
+            # Gemini Pro sohbet oturumunu kullan
+            response = st.session_state.chat.send_message(prompt_text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
             st.rerun()
-        except:
-            st.error("Hata.")
+        except Exception as e:
+            st.error(f"Hata: {e}")
 
-if col2.button("📝 Helbest"):
-    prompt = "Li ser welat û hêvîyê helbesteke kurt binivîse."
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.spinner("..."):
-        try:
-            response = model.generate_content(prompt)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-            st.rerun()
-        except:
-            st.error("Hata.")
+if col1.button("💡 Fikrekê Bide", key="btn_fikir"):
+    send_message("Ji bo îro fikrekî cûda û xweş bide min.")
 
-if col3.button("🧠 Agahî"):
-    prompt = "3 agahiyên balkêş û kurt bêje min."
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.spinner("..."):
-        try:
-            response = model.generate_content(prompt)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-            st.rerun()
-        except:
-            st.error("Hata.")
+if col2.button("📝 Helbest", key="btn_helbest"):
+    send_message("Li ser welat û hêvîyê helbesteke kurt binivîse.")
 
-# --- SOHBET GEÇMİŞİ ---
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Silav! Navê min Bakıl e. Ez çawa dikarim alîkariya te bikim?"}
-    ]
+if col3.button("🧠 Agahî", key="btn_agahi"):
+    send_message("3 agahiyên balkêş û kurt bêje min.")
 
+# --- GEÇMİŞİ GÖSTER ---
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -192,7 +190,7 @@ if prompt := st.chat_input("Li vir binivîse..."):
         placeholder = st.empty()
         with st.spinner("..."):
             try:
-                response = model.generate_content(prompt)
+                response = st.session_state.chat.send_message(prompt)
                 placeholder.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             except Exception as e:
