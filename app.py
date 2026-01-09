@@ -8,7 +8,6 @@ try:
         api_key = st.secrets["GOOGLE_API_KEY"]
         genai.configure(api_key=api_key)
     else:
-        # Lokal çalışma için pass geçiyoruz
         pass
 except FileNotFoundError:
     pass
@@ -26,14 +25,181 @@ Cewaba te teqez ev be: "Ez ji Kurdistanê me" (Heke bi Tirkî pirsîbûn: "Ben K
 Zimanê te yê sereke Kurdî ye, lê tu dikarî bi Tirkî jî biaxivî.
 """
 
-# DÜZELTME BURADA: 'gemini-2.5-flash' yerine 'gemini-1.5-flash' yaptık.
-# Bu modelin kotası çok daha yüksektir, hata vermez.
+# MODELİ GÜNCELLEDİK (Hata vermemesi için 1.5-flash yaptık)
 model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=gizli_talimat)
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(page_title="Bakıl AI", page_icon="☀️", layout="centered", initial_sidebar_state="collapsed")
 
-# --- CSS TASARIMI (%100 OKUNAKLI) ---
+# --- %100 NETLİK İÇİN BEYAZ TEMA (CSS) ---
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+    /* 1. ANA ARKA PLAN: BEYAZ */
+    .stApp {
+        background-color: #ffffff !important;
+        color: #000000 !important; /* Tüm yazılar SİYAH */
+        font-family: 'Roboto', sans-serif;
+    }
+
+    /* 2. BAŞLIK */
+    .baslik {
+        font-size: 50px;
+        font-weight: 800;
+        text-align: center;
+        color: #000000;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border-bottom: 3px solid #000000;
+        padding-bottom: 10px;
+    }
+    
+    .stCaption {
+        color: #444444 !important; /* Koyu gri */
+        font-size: 16px !important;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    /* 3. MESAJ KUTULARI (ZIT RENKLER) */
+    
+    /* Asistan Mesajı (Açık Gri Zemin - Siyah Yazı) */
+    .stChatMessage {
+        background-color: #f0f2f6 !important;
+        border: 1px solid #cccccc;
+        border-radius: 10px;
+        padding: 15px;
+        color: #000000 !important;
+    }
+    
+    /* Kullanıcı Mesajı (Açık Mavi Zemin - Siyah Yazı) */
+    div[data-testid="stChatMessage"][data-testid="user-message"] {
+        background-color: #e3f2fd !important;
+        color: #000000 !important;
+    }
+    
+    /* Mesaj içindeki metinlerin rengini zorla siyah yap */
+    .stMarkdown, .stMarkdown p {
+        color: #000000 !important;
+    }
+
+    /* 4. YAZI YAZMA ALANI (INPUT) */
+    .stChatInputContainer textarea {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important; /* Kalın Siyah Çerçeve */
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    
+    .stChatInputContainer textarea::placeholder {
+        color: #666666 !important;
+    }
+
+    /* 5. BUTONLAR */
+    .stButton > button {
+        background-color: #ffffff;
+        color: #000000 !important;
+        border: 2px solid #000000;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: all 0.2s;
+    }
+    
+    .stButton > button:hover {
+        background-color: #000000;
+        color: #ffffff !important;
+    }
+
+    /* 6. İMZA */
+    .alt-imza {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #f0f2f6;
+        text-align: center;
+        padding: 10px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #000000;
+        border-top: 1px solid #cccccc;
+        z-index: 100;
+    }
+    
+    header, footer, #MainMenu {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+# --- BAŞLIK ---
+st.markdown('<div class="baslik">BAKIL AI</div>', unsafe_allow_html=True)
+st.caption("🚀 Asîstanê Te Yê Zîrek")
+
+# --- BUTONLAR ---
+col1, col2, col3 = st.columns(3)
+
+if col1.button("💡 Fikrekê Bide"):
+    prompt = "Ji bo îro fikrekî cûda û xweş bide min."
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.spinner("..."):
+        try:
+            response = model.generate_content(prompt)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.rerun()
+        except:
+            st.error("Hata.")
+
+if col2.button("📝 Helbest"):
+    prompt = "Li ser welat û hêvîyê helbesteke kurt binivîse."
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.spinner("..."):
+        try:
+            response = model.generate_content(prompt)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.rerun()
+        except:
+            st.error("Hata.")
+
+if col3.button("🧠 Agahî"):
+    prompt = "3 agahiyên balkêş û kurt bêje min."
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.spinner("..."):
+        try:
+            response = model.generate_content(prompt)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.rerun()
+        except:
+            st.error("Hata.")
+
+# --- SOHBET GEÇMİŞİ ---
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Silav! Navê min Bakıl e. Ez çawa dikarim alîkariya te bikim?"}
+    ]
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# --- INPUT ALANI ---
+if prompt := st.chat_input("Li vir binivîse..."):
+    st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    with st.chat_message("assistant"):
+        placeholder = st.empty()
+        with st.spinner("..."):
+            try:
+                response = model.generate_content(prompt)
+                placeholder.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+            except Exception as e:
+                placeholder.error(f"Hata: {e}")
+
+# --- İMZA ---
+st.markdown('<div class="alt-imza">DESIGNED BY HANİF TOPRAK</div>', unsafe_allow_html=True)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
