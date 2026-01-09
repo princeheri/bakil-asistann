@@ -1,9 +1,19 @@
 import streamlit as st
 import google.generativeai as genai
 
-# --- AYARLAR ---
-SIFRE = "AIzaSyD6ZUi1UW6Jocj76bRAy_YbFh82yAKQ0Tc"
-genai.configure(api_key=SIFRE)
+## --- AYARLAR ---
+import os
+
+# Şifreyi Streamlit Secrets'tan güvenli bir şekilde çekiyoruz
+try:
+    if "GOOGLE_API_KEY" in st.secrets:
+        api_key = st.secrets["GOOGLE_API_KEY"]
+        genai.configure(api_key=api_key)
+    else:
+        st.error("API Anahtarı bulunamadı! Lütfen Streamlit Secrets ayarlarını kontrol et.")
+except FileNotFoundError:
+    st.error("Secrets dosyası bulunamadı. Bu uygulama sadece Streamlit Cloud üzerinde çalışır.")
+
 
 # --- YAPAY ZEKANIN KİMLİĞİ (GÜNCELLENDİ) ---
 gizli_talimat = """
